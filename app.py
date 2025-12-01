@@ -34,14 +34,6 @@ AGRICULTURAL_INSTRUCTIONS = {
     'english': (
         'You are an expert agricultural advisor for sugarcane farmers in India. '
         'Answer briefly with practical steps and clear structure.'
-    ),
-    'hindi': (
-        'आप भारत के गन्ना किसानों के लिए कृषि सलाहकार हैं। '
-        'सरल, व्यवहारिक और संक्षिप्त उत्तर दें।'
-    ),
-    'marathi': (
-        'तुम्ही भारतातील ऊस शेतकऱ्यांचे कृषी तज्ञ आहात. '
-        'सोपे आणि कृतीयोग्य उत्तर द्या.'
     )
 }
 

@@ -75,7 +75,7 @@ async function safeJson(response) {
 }
 // Utility: Get language
 function getLanguage() {
-    return localStorage.getItem('appLanguage') || 'english';
+    return 'english'; // Always return english
 }
 
 // Safe addEvent helper: attach listener only if element exists
@@ -99,96 +99,6 @@ let currentLanguage = localStorage.getItem('appLanguage') || 'english'; // Defau
 let attachedImageFile = null; // Store attached image
 // Feature flag: temporarily disable image/camera/file upload features
 const IMAGE_ENABLED = false; // set false to disable image functionality temporarily
-
-const languageCodes = {
-    'english': 'en-US',
-    'hindi': 'hi-IN',
-    'marathi': 'mr-IN',
-    'tamil': 'ta-IN',
-    'telugu': 'te-IN',
-    'kannada': 'kn-IN',
-    'punjabi': 'pa-IN'
-};
-
-const translations = {
-    'english': {
-        'appTitle': 'Farmer Agricultural Advisor',
-        'appTagline': 'Expert Advice for Sugarcane Farming',
-        'selectLanguage': 'Select Language:',
-        'uploadDocuments': 'Upload Documents',
-        'maxFileSize': 'Max 50MB per file | PDF, TXT, DOC, DOCX allowed',
-        'uploadFiles': 'Upload Files',
-        'cropDiseaseId': 'Crop Disease Identification',
-        'uploadCropPhoto': 'Upload crop photo | JPG, JPEG, PNG (max 10MB)',
-        'analyzeImage': 'Analyze Image',
-        'askQuestion': 'Ask your question...',
-        'voiceInput': 'Voice Input',
-        'send': 'Send',
-        'listenAnswer': 'Listen to Answer',
-        'stopSpeaking': 'Stop Speaking',
-        'thinking': 'Thinking...',
-        'you': 'You:',
-        'advisor': 'Advisor:',
-        'error': 'Error:',
-        'noFilesSelected': 'Please select at least one file',
-        'uploading': 'Uploading...',
-        'networkError': 'Network error:',
-        'noImageSelected': 'Please select a crop image',
-        'analyzing': 'Analyzing...',
-        'voiceNotSupported': 'Voice input not supported in this browser',
-        'voiceError': 'Voice recognition error:',
-        'noMessageToRead': 'No message to read',
-        'loadedFiles': 'Loaded Files',
-        'noFilesLoaded': 'No files loaded.',
-        'newChat': 'New Chat',
-        'searchChat': 'Search Chat',
-        'resetChat': 'Reset Chat',
-        'continue': 'Continue',
-        'library': 'Library',
-        'projects': 'Projects',
-        'explore': 'Explore',
-        'uploadDocument': 'Upload Document'
-    },
-    'hindi': {
-        'appTitle': 'किसान कृषि सलाहकार',
-        'appTagline': 'गन्ने की खेती के लिए विशेषज्ञ सलाह',
-        'selectLanguage': 'भाषा चुनें:',
-        'uploadDocuments': 'दस्तावेज़ अपलोड करें',
-        'maxFileSize': 'अधिकतम 50MB प्रति फ़ाइल | PDF, TXT, DOC, DOCX अनुमत',
-        'uploadFiles': 'अपलोड करें',
-        'cropDiseaseId': 'फसल रोग पहचान',
-        'uploadCropPhoto': 'फसल की फोटो अपलोड करें | JPG, JPEG, PNG (अधिकतम 10MB)',
-        'analyzeImage': 'फोटो जांचें',
-        'askQuestion': 'अपना सवाल पूछें...',
-        'voiceInput': 'वॉयस इनपुट',
-        'send': 'भेजें',
-        'listenAnswer': 'उत्तर सुनें',
-        'stopSpeaking': 'बंद करें',
-        'thinking': 'सोच रहा है...',
-        'you': 'आप:',
-        'advisor': 'सलाहकार:',
-        'error': 'त्रुटि:',
-        'noFilesSelected': 'कृपया कम से कम एक फ़ाइल चुनें',
-        'uploading': 'अपलोड हो रहा है...',
-        'networkError': 'नेटवर्क त्रुटि:',
-        'noImageSelected': 'कृपया फसल की फोटो चुनें',
-        'analyzing': 'जांच हो रही है...',
-        'voiceNotSupported': 'इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है',
-        'voiceError': 'वॉयस रिकॉग्निशन त्रुटि:',
-        'noMessageToRead': 'पढ़ने के लिए कोई संदेश नहीं',
-        'loadedFiles': 'लोड की गई फ़ाइलें',
-        'noFilesLoaded': 'कोई फ़ाइल लोड नहीं हुई।',
-        'newChat': 'नई चैट',
-        'searchChat': 'चैट खोजें',
-        'resetChat': 'चैट रीसेट करें',
-        'continue': 'जारी रखें',
-        'library': 'लाइब्रेरी',
-        'projects': 'परियोजनाएं',
-        'explore': 'एक्सप्लोर करें',
-        'uploadDocument': 'दस्तावेज़ अपलोड करें'
-    }
-    // ... add other languages here
-};
 
 // Utility: Clear chat
 function clearChat() {
@@ -224,101 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('dark-mode');
         const dmt = document.getElementById('darkModeToggle');
         if (dmt) dmt.textContent = '☀️';
-    }
-
-    // Ensure a language is set (avoid modal). Default to English if missing.
-    if (!localStorage.getItem('appLanguage')) {
-        localStorage.setItem('appLanguage', 'english');
-        currentLanguage = 'english';
-        applyLanguage(currentLanguage);
-    } else {
-        applyLanguage(currentLanguage);
-    }
-
-    // Robust handling for a legacy or injected language selection modal.
-    // Some deployed builds injected a modal that either lacks handlers or is added after DOMContentLoaded.
-    // This code will (1) attach click handlers to any language options found inside the modal
-    // (2) set localStorage.appLanguage and apply the language, and (3) remove/hide the modal.
-    function bindLanguageModalOnce() {
-        try {
-            const lm = document.getElementById('languageModal');
-            if (!lm) return false;
-
-            // helper to accept a language choice and remove modal
-            const acceptLang = (lang) => {
-                if (!lang) return;
-                try { localStorage.setItem('appLanguage', lang); } catch (e) {}
-                currentLanguage = lang;
-                try { applyLanguage(lang); } catch (e) {}
-                if (lm && lm.parentNode) {
-                    lm.parentNode.removeChild(lm);
-                } else if (lm && typeof lm.remove === 'function') {
-                    lm.remove();
-                }
-            };
-
-            // Find interactive elements that might represent language choices
-            const clickable = lm.querySelectorAll('[data-lang], .lang-option, button[data-lang], input[name="language"]');
-            if (clickable && clickable.length) {
-                clickable.forEach(el => {
-                    // if it's an input radio, listen for change
-                    if (el.tagName === 'INPUT' && el.type === 'radio') {
-                        el.addEventListener('change', (ev) => {
-                            const val = ev.target.value || ev.target.getAttribute('data-lang');
-                            acceptLang(val);
-                        });
-                    } else {
-                        el.addEventListener('click', (ev) => {
-                            const val = el.getAttribute('data-lang') || el.getAttribute('data-value') || el.value || el.textContent && el.textContent.trim().toLowerCase();
-                            acceptLang(val);
-                        });
-                    }
-                });
-            }
-
-            // Also attach to any confirm/continue button inside modal
-            const confirmBtn = lm.querySelector('.confirm-language, #languageConfirm, button.confirm');
-            if (confirmBtn) {
-                confirmBtn.addEventListener('click', (e) => {
-                    // try to find a selected radio/input inside modal
-                    const sel = lm.querySelector('input[name="language"]:checked');
-                    if (sel && sel.value) {
-                        acceptLang(sel.value);
-                        return;
-                    }
-                    // fallback: take a data-lang attribute on the confirm button
-                    const f = confirmBtn.getAttribute('data-lang') || confirmBtn.getAttribute('data-value');
-                    if (f) acceptLang(f);
-                });
-            }
-
-            // If there were no clickable options, just hide the modal to avoid blocking the UI
-            if (clickable.length === 0 && confirmBtn == null) {
-                // hide after short delay to give any injected scripts time to wire up
-                setTimeout(() => {
-                    try {
-                        if (lm && lm.parentNode) lm.parentNode.removeChild(lm);
-                        else if (lm && typeof lm.remove === 'function') lm.remove();
-                    } catch (e) {}
-                }, 300);
-            }
-
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    // Try binding immediately; if the modal is injected later, observe mutations and bind once it's added.
-    if (!bindLanguageModalOnce()) {
-        const mo = new MutationObserver((mutations, observer) => {
-            if (bindLanguageModalOnce()) {
-                observer.disconnect();
-            }
-        });
-        try { mo.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
-        // Final safety: remove any lingering modal after 5s to avoid permanently blocking the UI
-        setTimeout(() => { try { const lm2 = document.getElementById('languageModal'); if (lm2) lm2.remove(); } catch (e) {} }, 5000);
     }
 
     // Show walkthrough on every page load
@@ -557,21 +372,6 @@ function showWalkthrough(force=false) {
 // Language UI removed from template; no inline dropdown handlers required here.
 
 // Image functionality now integrated into main chat flow
-
-function applyLanguage(lang) {
-    const t = translations[lang] || translations['english'];
-    // Update input area
-    const q = document.getElementById('question');
-    if (q) q.placeholder = t.askQuestion;
-    const fileLabel = document.querySelector('label[for="chatFileInput"]');
-    if (fileLabel) fileLabel.title = (t.uploadDocument || 'Upload');
-    const vbtn = document.getElementById('voiceBtn');
-    if (vbtn) vbtn.title = (t.voiceInput || 'Voice');
-    // Update loading indicator
-    const liSpan = document.querySelector('#loadingIndicator span:last-child');
-    if (liSpan) liSpan.textContent = t.thinking;
-    // No modal present; update any visible labels if needed
-}
 
 // Render pre-search suggestion chips below the header
 function renderPreSearchChips() {
@@ -890,7 +690,7 @@ function initSpeechRecognition() {
             }
 
             // Set language and start
-            const lang = languageCodes[getLanguage()] || 'en-US';
+            const lang = 'en-US'; // Always use English
             recognition.lang = lang;
             // starting voice recognition with language
             
@@ -956,7 +756,7 @@ safeAddEvent('speakBtn', 'click', () => {
         synthesis.cancel();
     }
 
-    const lang = languageCodes[getLanguage()] || 'en-US';
+    const lang = 'en-US'; // Always use English
     currentUtterance = new SpeechSynthesisUtterance(lastBotMessage);
     currentUtterance.lang = lang;
     synthesis.speak(currentUtterance);
