@@ -235,12 +235,90 @@ document.addEventListener('DOMContentLoaded', () => {
         applyLanguage(currentLanguage);
     }
 
-    // Defensive: remove legacy language modal if it somehow exists in DOM
-    try {
-        const legacyModal = document.getElementById('languageModal');
-        if (legacyModal && legacyModal.parentNode) legacyModal.parentNode.removeChild(legacyModal);
-    } catch (e) {
-        // ignore
+    // Robust handling for a legacy or injected language selection modal.
+    // Some deployed builds injected a modal that either lacks handlers or is added after DOMContentLoaded.
+    // This code will (1) attach click handlers to any language options found inside the modal
+    // (2) set localStorage.appLanguage and apply the language, and (3) remove/hide the modal.
+    function bindLanguageModalOnce() {
+        try {
+            const lm = document.getElementById('languageModal');
+            if (!lm) return false;
+
+            // helper to accept a language choice and remove modal
+            const acceptLang = (lang) => {
+                if (!lang) return;
+                try { localStorage.setItem('appLanguage', lang); } catch (e) {}
+                currentLanguage = lang;
+                try { applyLanguage(lang); } catch (e) {}
+                if (lm && lm.parentNode) {
+                    lm.parentNode.removeChild(lm);
+                } else if (lm && typeof lm.remove === 'function') {
+                    lm.remove();
+                }
+            };
+
+            // Find interactive elements that might represent language choices
+            const clickable = lm.querySelectorAll('[data-lang], .lang-option, button[data-lang], input[name="language"]');
+            if (clickable && clickable.length) {
+                clickable.forEach(el => {
+                    // if it's an input radio, listen for change
+                    if (el.tagName === 'INPUT' && el.type === 'radio') {
+                        el.addEventListener('change', (ev) => {
+                            const val = ev.target.value || ev.target.getAttribute('data-lang');
+                            acceptLang(val);
+                        });
+                    } else {
+                        el.addEventListener('click', (ev) => {
+                            const val = el.getAttribute('data-lang') || el.getAttribute('data-value') || el.value || el.textContent && el.textContent.trim().toLowerCase();
+                            acceptLang(val);
+                        });
+                    }
+                });
+            }
+
+            // Also attach to any confirm/continue button inside modal
+            const confirmBtn = lm.querySelector('.confirm-language, #languageConfirm, button.confirm');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', (e) => {
+                    // try to find a selected radio/input inside modal
+                    const sel = lm.querySelector('input[name="language"]:checked');
+                    if (sel && sel.value) {
+                        acceptLang(sel.value);
+                        return;
+                    }
+                    // fallback: take a data-lang attribute on the confirm button
+                    const f = confirmBtn.getAttribute('data-lang') || confirmBtn.getAttribute('data-value');
+                    if (f) acceptLang(f);
+                });
+            }
+
+            // If there were no clickable options, just hide the modal to avoid blocking the UI
+            if (clickable.length === 0 && confirmBtn == null) {
+                // hide after short delay to give any injected scripts time to wire up
+                setTimeout(() => {
+                    try {
+                        if (lm && lm.parentNode) lm.parentNode.removeChild(lm);
+                        else if (lm && typeof lm.remove === 'function') lm.remove();
+                    } catch (e) {}
+                }, 300);
+            }
+
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Try binding immediately; if the modal is injected later, observe mutations and bind once it's added.
+    if (!bindLanguageModalOnce()) {
+        const mo = new MutationObserver((mutations, observer) => {
+            if (bindLanguageModalOnce()) {
+                observer.disconnect();
+            }
+        });
+        try { mo.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+        // Final safety: remove any lingering modal after 5s to avoid permanently blocking the UI
+        setTimeout(() => { try { const lm2 = document.getElementById('languageModal'); if (lm2) lm2.remove(); } catch (e) {} }, 5000);
     }
 
     // Show walkthrough on every page load
