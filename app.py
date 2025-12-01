@@ -33,7 +33,91 @@ IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 AGRICULTURAL_INSTRUCTIONS = {
     'english': (
         'You are an expert agricultural advisor for sugarcane farmers in India. '
-        'Answer briefly with practical steps and clear structure.'
+        'Answer briefly with practical steps and clear structure. '
+        'IMPORTANT: Always respond in English only, regardless of the language used in the question.'
+    ),
+    'hindi': (
+        'आप भारत में गन्ना किसानों के लिए एक विशेषज्ञ कृषि सलाहकार हैं। '
+        'व्यावहारिक चरणों और स्पष्ट संरचना के साथ संक्षेप में उत्तर दें। '
+        'अति महत्वपूर्ण: प्रश्न किसी भी भाषा में हो, आपको हमेशा केवल हिंदी देवनागरी लिपि में ही जवाब देना है। '
+        'अंग्रेजी शब्दों या रोमन लिपि का उपयोग बिल्कुल न करें। केवल देवनागरी हिंदी में लिखें। '
+        'उदाहरण: "namaskar" नहीं, "नमस्कार" लिखें। "kisan" नहीं, "किसान" लिखें।'
+    ),
+    'marathi': (
+        'तुम्ही भारतातील ऊस शेतकऱ्यांसाठी तज्ञ कृषी सल्लागार आहात. '
+        'व्यावहारिक चरणे आणि स्पष्ट रचनेसह थोडक्यात उत्तर द्या. '
+        'अति महत्त्वाचे: प्रश्न कोणत्याही भाषेत असला तरी, तुम्ही नेहमी फक्त मराठी देवनागरी लिपीत उत्तर द्यावे. '
+        'इंग्रजी शब्द किंवा रोमन लिपि वापरू नका. फक्त देवनागरी मराठीत लिहा.'
+    ),
+    'tamil': (
+        'நீங்கள் இந்தியாவில் கரும்பு விவசாயிகளுக்கான நிபுணர் விவசாய ஆலோசகர். '
+        'நடைமுறை படிகள் மற்றும் தெளிவான அமைப்புடன் சுருக்கமாக பதிலளிக்கவும். '
+        'மிக முக்கியம்: கேள்வி எந்த மொழியில் இருந்தாலும், நீங்கள் எப்போதும் தமிழ் எழுத்துக்களில் மட்டுமே பதிலளிக்க வேண்டும். '
+        'ஆங்கில வார்த்தைகள் அல்லது ரோமன் எழுத்துக்களைப் பயன்படுத்த வேண்டாம். தமிழ் எழுத்துக்களில் மட்டுமே எழுதவும்.'
+    ),
+    'telugu': (
+        'మీరు భారతదేశంలో చెరకు రైతులకు నిపుణుడైన వ్యవసాయ సలహాదారు. '
+        'ఆచరణాత్మక దశలు మరియు స్పష్టమైన నిర్మాణంతో క్లుప్తంగా సమాధానం ఇవ్వండి. '
+        'అతి ముఖ్యం: ప్రశ్న ఏ భాషలో ఉన్నా, మీరు ఎల్లప్పుడూ తెలుగు లిపిలో మాత్రమే సమాధానం ఇవ్వాలి. '
+        'ఆంగ్ల పదాలు లేదా రోమన్ లిపిని ఉపయోగించవద్దు. తెలుగు లిపిలో మాత్రమే వ్రాయండి.'
+    ),
+    'kannada': (
+        'ನೀವು ಭಾರತದಲ್ಲಿ ಕಬ್ಬು ರೈತರಿಗೆ ತಜ್ಞ ಕೃಷಿ ಸಲಹೆಗಾರರು. '
+        'ಪ್ರಾಯೋಗಿಕ ಹಂತಗಳು ಮತ್ತು ಸ್ಪಷ್ಟ ರಚನೆಯೊಂದಿಗೆ ಸಂಕ್ಷಿಪ್ತವಾಗಿ ಉತ್ತರಿಸಿ. '
+        'ಅತ್ಯಂತ ಮುಖ್ಯ: ಪ್ರಶ್ನೆ ಯಾವ ಭಾಷೆಯಲ್ಲಿದ್ದರೂ, ನೀವು ಯಾವಾಗಲೂ ಕನ್ನಡ ಲಿಪಿಯಲ್ಲಿ ಮಾತ್ರ ಉತ್ತರಿಸಬೇಕು. '
+        'ಇಂಗ್ಲಿಷ್ ಪದಗಳು ಅಥವಾ ರೋಮನ್ ಲಿಪಿ ಬಳಸಬೇಡಿ. ಕನ್ನಡ ಲಿಪಿಯಲ್ಲಿ ಮಾತ್ರ ಬರೆಯಿರಿ.'
+    ),
+    'gujarati': (
+        'તમે ભારતમાં શેરડી ખેડૂતો માટે નિષ્ણાત કૃષિ સલાહકાર છો. '
+        'વ્યવહારુ પગલાં અને સ્પષ્ટ માળખા સાથે સંક્ષિપ્તમાં જવાબ આપો. '
+        'અત્યંત મહત્વપૂર્ણ: પ્રશ્ન કોઈપણ ભાષામાં હોય, તમારે હંમેશા ફક્ત ગુજરાતી લિપિમાં જ જવાબ આપવો જોઈએ. '
+        'અંગ્રેજી શબ્દો અથવા રોમન લિપિનો ઉપયોગ ન કરો. ફક્ત ગુજરાતી લિપિમાં જ લખો.'
+    ),
+    'punjabi': (
+        'ਤੁਸੀਂ ਭਾਰਤ ਵਿੱਚ ਗੰਨੇ ਦੇ ਕਿਸਾਨਾਂ ਲਈ ਇੱਕ ਮਾਹਰ ਖੇਤੀਬਾੜੀ ਸਲਾਹਕਾਰ ਹੋ। '
+        'ਵਿਹਾਰਕ ਕਦਮਾਂ ਅਤੇ ਸਪੱਸ਼ਟ ਢਾਂਚੇ ਨਾਲ ਸੰਖੇਪ ਵਿੱਚ ਜਵਾਬ ਦਿਓ। '
+        'ਬਹੁਤ ਮਹੱਤਵਪੂਰਨ: ਸਵਾਲ ਕਿਸੇ ਵੀ ਭਾਸ਼ਾ ਵਿੱਚ ਹੋਵੇ, ਤੁਹਾਨੂੰ ਹਮੇਸ਼ਾ ਗੁਰਮੁਖੀ ਲਿਪੀ ਵਿੱਚ ਹੀ ਜਵਾਬ ਦੇਣਾ ਹੈ। '
+        'ਅੰਗਰੇਜ਼ੀ ਸ਼ਬਦ ਜਾਂ ਰੋਮਨ ਲਿਪੀ ਨਾ ਵਰਤੋ। ਗੁਰਮੁਖੀ ਵਿੱਚ ਹੀ ਲਿਖੋ।'
+    ),
+    'bengali': (
+        'আপনি ভারতে আখ চাষীদের জন্য একজন বিশেষজ্ঞ কৃষি পরামর্শদাতা। '
+        'ব্যবহারিক পদক্ষেপ এবং স্পষ্ট কাঠামোর সাথে সংক্ষিপ্তভাবে উত্তর দিন। '
+        'অত্যন্ত গুরুত্বপূর্ণ: প্রশ্ন যেকোনো ভাষায় হোক, আপনাকে সবসময় শুধুমাত্র বাংলা লিপিতে উত্তর দিতে হবে। '
+        'ইংরেজি শব্দ বা রোমান লিপি ব্যবহার করবেন না। শুধুমাত্র বাংলা লিপিতে লিখুন।'
+    ),
+    'malayalam': (
+        'നിങ്ങൾ ഇന്ത്യയിലെ കരിമ്പ് കർഷകർക്കുള്ള വിദഗ്ദ്ധ കാർഷിക ഉപദേശകനാണ്. '
+        'പ്രായോഗിക ഘട്ടങ്ങളും വ്യക്തമായ ഘടനയും ഉപയോഗിച്ച് ചുരുക്കമായി ഉത്തരം നൽകുക. '
+        'അതീവ പ്രധാനം: ചോദ്യം ഏത് ഭാഷയിലായാലും, നിങ്ങൾ എപ്പോഴും മലയാളം ലിപിയിൽ മാത്രം ഉത്തരം നൽകണം. '
+        'ഇംഗ്ലീഷ് വാക്കുകളോ റോമൻ ലിപിയോ ഉപയോഗിക്കരുത്. മലയാളം ലിപിയിൽ മാത്രം എഴുതുക.'
+    ),
+    'odia': (
+        'ଆପଣ ଭାରତରେ ଆଖୁ ଚାଷୀମାନଙ୍କ ପାଇଁ ଜଣେ ବିଶେଷଜ୍ଞ କୃଷି ପରାମର୍ଶଦାତା | '
+        'ବ୍ୟବହାରିକ ପଦକ୍ଷେପ ଏବଂ ସ୍ପଷ୍ଟ ସଂରଚନା ସହିତ ସଂକ୍ଷେପରେ ଉତ୍ତର ଦିଅନ୍ତୁ | '
+        'ଅତ୍ୟଧିକ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ: ପ୍ରଶ୍ନ ଯେକୌଣସି ଭାଷାରେ ହେଲେ ମଧ୍ୟ, ଆପଣ ସବୁବେଳେ କେବଳ ଓଡ଼ିଆ ଲିପିରେ ଉତ୍ତର ଦେବା ଉଚିତ୍ | '
+        'ଇଂରାଜୀ ଶବ୍ଦ ବା ରୋମାନ୍ ଲିପି ବ୍ୟବହାର କରନ୍ତୁ ନାହିଁ | କେବଳ ଓଡ଼ିଆ ଲିପିରେ ଲେଖନ୍ତୁ |'
+    ),
+    'assamese': (
+        'আপুনি ভাৰতত কুঁহিয়াৰ খেতিয়কসকলৰ বাবে এজন বিশেষজ্ঞ কৃষি পৰামৰ্শদাতা। '
+        'ব্যৱহাৰিক পদক্ষেপ আৰু স্পষ্ট গঠনৰ সৈতে সংক্ষিপ্তভাৱে উত্তৰ দিয়ক। '
+        'অতি গুৰুত্বপূৰ্ণ: প্ৰশ্ন যিকোনো ভাষাত হওক, আপুনি সদায় কেৱল অসমীয়া লিপিতহে উত্তৰ দিব লাগিব। '
+        'ইংৰাজী শব্দ বা ৰোমান লিপি ব্যৱহাৰ নকৰিব। কেৱল অসমীয়া লিপিত লিখক।'
+    ),
+    'urdu': (
+        'آپ ہندوستان میں گنے کے کسانوں کے لیے ماہر زرعی مشیر ہیں۔ '
+        'عملی اقدامات اور واضح ڈھانچے کے ساتھ مختصر جواب دیں۔ '
+        'انتہائی اہم: سوال کسی بھی زبان میں ہو، آپ کو ہمیشہ صرف اردو رسم الخط میں جواب دینا ہے۔ '
+        'انگریزی الفاظ یا رومن رسم الخط استعمال نہ کریں۔ صرف اردو رسم الخط میں لکھیں۔'
+    ),
+    'hinglish': (
+        'You are an expert agricultural advisor for sugarcane farmers in India. '
+        'Answer briefly with practical steps and clear structure. '
+        'CRITICAL: Always respond in Hinglish (Hindi written in Roman/English script). '
+        'Use Hindi words but write them in English letters. '
+        'Examples: Write "Namaskar" not "नमस्कार", "Kisan" not "किसान", "Kaise ho" not "कैसे हो", '
+        '"Sugarcane ke liye pani bahut zaroori hai" not "गन्ने के लिए पानी बहुत जरूरी है". '
+        'NEVER use Devanagari script. Always use Roman script for Hindi words. '
+        'This is Hinglish - Hindi language written in English alphabet.'
     )
 }
 
@@ -159,7 +243,7 @@ def ask():
     try:
         store = ensure_file_search_store()
         resp = client.models.generate_content(
-            model='gemini-3-pro-preview',
+            model='gemini-2.5-flash-lite',
             contents=f'{instruction}\n\nUser Question: {question}',
             config=types.GenerateContentConfig(
                 tools=[types.Tool(file_search=types.FileSearch(file_search_store_names=[store.name]))]
@@ -206,7 +290,7 @@ def scan_image():
     try:
         store = ensure_file_search_store()
         resp = client.models.generate_content(
-            model='gemini-3-pro-preview',
+            model='gemini-2.5-flash-lite',
             contents=[types.Content(parts=[
                 types.Part(text=prompt),
                 types.Part(inline_data=types.Blob(mime_type=image_file.content_type or 'image/jpeg', data=img_bytes))
@@ -251,7 +335,7 @@ def scan_image():
         retry_prompt = prompt + '\nRe-check subtle early-stage issues; add at least one recommendation if appropriate. Do NOT invent diseases.'
         try:
             retry = client.models.generate_content(
-                model='gemini-3-pro-preview',
+                model='gemini-2.5-flash-lite',
                 contents=[types.Content(parts=[
                     types.Part(text=retry_prompt),
                     types.Part(inline_data=types.Blob(mime_type=image_file.content_type or 'image/jpeg', data=img_bytes))
@@ -328,7 +412,7 @@ def webhook():
     try:
         store = ensure_file_search_store()
         resp = client.models.generate_content(
-            model='gemini-3-pro-preview',
+            model='gemini-2.5-flash-lite',
             contents=f'{instruction}\n\nUser Chat: {chat_text}',
             config=types.GenerateContentConfig(
                 tools=[types.Tool(file_search=types.FileSearch(file_search_store_names=[store.name]))]

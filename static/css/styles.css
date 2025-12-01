@@ -23,7 +23,8 @@ body{
 .icon-btn{background:transparent;border:none;padding:8px;border-radius:8px;cursor:pointer;font-size:16px}
 .icon-btn:hover{background:rgba(15,23,42,0.04)}
 .main-area{display:flex;flex:1;overflow:hidden}
-.left-panel{width:240px;background:transparent;border-right:1px solid rgba(15,23,42,0.03);padding:12px;display:flex;flex-direction:column;gap:10px}
+.left-panel{width:240px;background:transparent;border-right:1px solid rgba(15,23,42,0.03);padding:12px;display:flex;flex-direction:column;gap:10px;transition:transform 0.3s ease}
+.menu-toggle{display:none}
 .panel-section{background:var(--card);padding:10px;border-radius:10px;box-shadow:var(--shadow)}
 .section-title{font-size:13px;font-weight:600;margin-bottom:8px}
 .quick-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -77,6 +78,32 @@ body{margin:0;background:var(--wa-light);color:#091718;min-height:100vh;-webkit-
 .title{font-weight:700;font-size:16px}
 .subtitle{font-size:12px;opacity:0.9}
 .header-right{display:flex;gap:8px;align-items:center}
+.language-select{
+    background:rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.3);
+    color:#fff;
+    padding:6px 12px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    outline:none;
+    transition:all 0.3s ease;
+}
+.language-select:hover{
+    background:rgba(255,255,255,0.25);
+}
+.language-select option{
+    background:#2d2d2d;
+    color:#fff;
+}
+body.dark-mode .language-select{
+    background:rgba(0,0,0,0.2);
+    border:1px solid rgba(255,255,255,0.2);
+}
+body.dark-mode .language-select option{
+    background:#1a1a1a;
+}
 .icon-btn{background:transparent;border:none;color:#fff;padding:8px;border-radius:8px;cursor:pointer}
 
 /* Main: chat column */
@@ -761,6 +788,14 @@ body.dark-mode .loading-indicator {
 
 /* Tablet Responsive */
 @media (max-width: 1024px) {
+    .app-shell {
+        max-width: 100%;
+    }
+
+    .left-panel {
+        width: 200px;
+    }
+
     .msg {
         max-width: 80%;
     }
@@ -777,6 +812,20 @@ body.dark-mode .loading-indicator {
     .msg-image {
         max-width: 250px !important;
     }
+
+    .header-right {
+        gap: 6px;
+    }
+
+    .language-select {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .icon-btn {
+        padding: 6px;
+        font-size: 14px;
+    }
 }
 
 /* Mobile Responsive */
@@ -786,71 +835,132 @@ body.dark-mode .loading-indicator {
         height: 100dvh;
     }
 
-    .chat-header {
-        padding: 14px 16px;
-        min-height: 68px;
+    /* Show menu toggle on mobile */
+    .menu-toggle {
+        display: block;
     }
 
-    .chat-header-left {
-        gap: 10px;
+    /* Hide left panel on mobile by default */
+    .left-panel {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 240px;
+        z-index: 1000;
+        background: var(--card);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        transform: translateX(-100%);
+        padding-top: 60px;
     }
 
-    .chat-title {
-        font-size: 18px;
+    .left-panel.active {
+        transform: translateX(0);
     }
 
-    .chat-subtitle {
-        font-size: 12px;
+    /* Overlay when menu is open */
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
     }
 
-    .chat-avatar {
-        width: 42px;
-        height: 42px;
-        font-size: 18px;
+    .overlay.active {
+        display: block;
     }
 
-    .header-actions {
-        gap: 8px;
-    }
-
-    .header-top-row {
-        padding: 10px 15px;
-    }
-
-    .header-second-row {
-        padding: 15px;
+    .app-header {
+        padding: 10px 12px;
         flex-wrap: wrap;
     }
 
-    .app-title {
-        font-size: 18px;
-        flex: 1;
-    }
-
-    .header-tabs {
+    .header-left {
         gap: 8px;
     }
 
-    .header-tab {
-        padding: 6px 10px;
-        font-size: 12px;
+    .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
     }
 
-    .hamburger-btn {
-        font-size: 24px;
-        padding: 5px 8px;
+    .title {
+        font-size: 14px;
     }
 
-    .dark-mode-toggle {
-        font-size: 24px;
-        width: 48px;
-        height: 48px;
-        padding: 10px 12px;
+    .subtitle {
+        font-size: 10px;
     }
 
-    .language-selector-btn {
-        padding: 8px 16px;
-        font-size: 15px;
+    .header-right {
+        gap: 4px;
+    }
+
+    .language-select {
+        font-size: 11px;
+        padding: 4px 8px;
+        max-width: 100px;
+    }
+
+    .icon-btn {
+        padding: 6px;
+        font-size: 14px;
+    }
+
+    .chat-column {
+        padding: 12px 8px;
+    }
+
+    .chatbox {
+        padding: 8px;
+    }
+
+    .msg {
+        max-width: 90%;
+    }
+
+    .msg-bubble {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+
+    .composer {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .composer-left {
+        gap: 6px;
+    }
+
+    .attach {
+        padding: 6px;
+        font-size: 18px;
+    }
+
+    .composer-center textarea {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+
+    .send-btn {
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+
+    .image-preview {
+        left: 10px;
+        bottom: 70px;
+    }
+
+    .loading-indicator {
+        padding: 8px;
+        font-size: 14px;
     }
 
     .pill-btn {
@@ -928,56 +1038,62 @@ body.dark-mode .loading-indicator {
 
 /* Small Mobile Responsive */
 @media (max-width: 480px) {
-    .chat-header {
-        padding: 12px 14px;
-        min-height: 62px;
+    .app-header {
+        padding: 8px 10px;
     }
 
-    .chat-title {
-        font-size: 16px;
+    .header-left {
+        gap: 6px;
     }
 
-    .chat-subtitle {
-        font-size: 11px;
+    .title-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
 
-    .chat-avatar {
-        width: 38px;
-        height: 38px;
-        font-size: 16px;
+    .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
     }
 
-    .app-title {
-        font-size: 16px;
+    .title {
+        font-size: 13px;
     }
 
-    .header-tab {
-        padding: 5px 8px;
-        font-size: 11px;
+    .subtitle {
+        font-size: 9px;
     }
 
-    .dark-mode-toggle {
-        width: 44px;
-        height: 44px;
-        font-size: 22px;
+    .header-right {
+        gap: 3px;
+        flex-wrap: wrap;
     }
 
-    .language-selector-btn {
-        padding: 7px 14px;
-        font-size: 14px;
+    .language-select {
+        font-size: 10px;
+        padding: 3px 6px;
+        max-width: 90px;
     }
 
-    .pill-btn {
-        font-size: 22px;
-        min-width: 40px;
-        min-height: 40px;
+    .icon-btn {
+        padding: 5px;
+        font-size: 13px;
+    }
+
+    .chat-column {
+        padding: 10px 6px;
+    }
+
+    .chatbox {
+        padding: 6px;
     }
 
     .msg {
         max-width: 95%;
         margin-left: 2.5%;
         margin-right: 2.5%;
-        gap: 8px;
     }
 
     .msg.user {
@@ -988,15 +1104,10 @@ body.dark-mode .loading-indicator {
         margin-left: 2.5%;
     }
 
-    .msg-avatar {
-        width: 28px;
-        height: 28px;
-        font-size: 16px;
-    }
-
     .msg-bubble {
-        padding: 9px 12px;
-        font-size: 14px;
+        padding: 7px 9px;
+        font-size: 13px;
+        max-width: 100%;
     }
 
     /* Image preview stays compact on small mobile */
@@ -1004,31 +1115,55 @@ body.dark-mode .loading-indicator {
         max-width: 180px !important;
     }
 
-    .pill-input-bar {
-        padding: 10px 14px;
-        gap: 8px;
+    .composer {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .composer-left {
+        gap: 4px;
+    }
+
+    .attach {
+        padding: 5px;
+        font-size: 16px;
+    }
+
+    .composer-center textarea {
+        font-size: 13px;
+        padding: 7px 9px;
     }
 
     .send-btn {
+        padding: 7px 10px;
+        font-size: 14px;
+    }
+
+    .icon-btn {
+        font-size: 18px;
+    }
+
+    .image-preview {
+        left: 8px;
+        bottom: 65px;
+        padding: 6px;
+    }
+
+    .image-preview img {
         width: 40px;
         height: 40px;
-        font-size: 18px;
-        min-width: 40px;
-        min-height: 40px;
     }
-
-    #question {
-        font-size: 16px;
-        min-height: 26px;
-    }
-
-    /* Mobile modal styles removed (no-op) */
 
     /* Ensure loading indicator fits */
     .loading-indicator {
-        font-size: 15px;
-        padding: 14px;
+        font-size: 13px;
+        padding: 8px;
         max-width: 90%;
+    }
+
+    .spinner {
+        width: 12px;
+        height: 12px;
     }
 }
 

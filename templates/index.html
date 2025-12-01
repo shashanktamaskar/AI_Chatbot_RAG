@@ -15,6 +15,7 @@
     <div class="app-shell">
         <header class="app-header">
             <div class="header-left">
+                <button id="menuToggle" class="icon-btn menu-toggle" title="Menu">☰</button>
                 <div class="avatar">SA</div>
                 <div class="title-block">
                     <div class="title">Sugarcane Advisor</div>
@@ -22,6 +23,22 @@
                 </div>
             </div>
             <div class="header-right">
+                <select id="languageSelect" class="language-select" title="Select Language">
+                    <option value="english">English</option>
+                    <option value="hinglish">Hinglish</option>
+                    <option value="hindi">हिंदी (Hindi)</option>
+                    <option value="marathi">मराठी (Marathi)</option>
+                    <option value="tamil">தமிழ் (Tamil)</option>
+                    <option value="telugu">తెలుగు (Telugu)</option>
+                    <option value="kannada">ಕನ್ನಡ (Kannada)</option>
+                    <option value="gujarati">ગુજરાતી (Gujarati)</option>
+                    <option value="punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                    <option value="bengali">বাংলা (Bengali)</option>
+                    <option value="malayalam">മലയാളം (Malayalam)</option>
+                    <option value="odia">ଓଡ଼ିଆ (Odia)</option>
+                    <option value="assamese">অসমীয়া (Assamese)</option>
+                    <option value="urdu">اردو (Urdu)</option>
+                </select>
                 <button id="helpBtn" class="icon-btn" title="Help">❓</button>
                 <button id="classifyPlantBtn" class="icon-btn" title="Identify plant">🌿</button>
                 <button id="darkModeToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
@@ -82,6 +99,8 @@
         </div>
 
     </div>
+
+    <div class="overlay" id="menuOverlay"></div>
 
     <script src="/static/js/app.js?v=2"></script>
 </body>
