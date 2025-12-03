@@ -608,13 +608,6 @@ body.dark-mode #removeImageBtn:hover {
     cursor: pointer;
 }
 
-/* Infographic block styling */
-.infographic { border: 1px solid rgba(0,0,0,0.06); padding: 10px; border-radius: 8px; background: #fff; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
-.infographic-inner { width:100%; max-width:720px; overflow:auto; }
-.infographic-reason { font-size:13px; color:var(--muted); }
-.infographic-download, .infographic-open { background:#e6f7f2; color:#036; padding:6px 10px; border-radius:6px; text-decoration:none; border:1px solid rgba(3,102,102,0.08); cursor:pointer; }
-.infographic-open { background:#fff; border:1px solid rgba(0,0,0,0.06); }
-
 body.dark-mode .msg-image {
     border-color: #555;
 }
