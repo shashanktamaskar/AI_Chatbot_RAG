@@ -2,7 +2,7 @@
 Clean consolidated implementation replacing prior corrupted refactor state."""
 from __future__ import annotations
 
-import os, time, json, re, glob, io, logging
+import os, time, json, re, glob, io, logging, hashlib
 from typing import List, Dict, Any
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -13,6 +13,7 @@ from PIL import Image
 
 from google import genai
 from google.genai import types
+from typing import Optional
 
 load_dotenv()
 
@@ -124,11 +125,15 @@ AGRICULTURAL_INSTRUCTIONS = {
 api_key = os.getenv('GOOGLE_API_KEY')
 client = None
 FILE_SEARCH_STORE = None
+_STORE_INFO_PATH = '.file_search_store.json'
+_UPLOAD_CACHE_NAME = 'upload_cache.json'
+
 if api_key:
     try:
         client = genai.Client(api_key=api_key)
-        FILE_SEARCH_STORE = client.file_search_stores.create()
-        logger.info(f'Initialized Gemini file store: {FILE_SEARCH_STORE.name}')
+        # Do not create a new file-search store on every startup.
+        # ensure_file_search_store() will create one and persist its name when needed.
+        logger.info('Initialized Gemini client')
     except Exception as e:  # pragma: no cover
         logger.error(f'Failed to initialize Gemini client: {e}')
 else:
@@ -144,13 +149,66 @@ def ensure_file_search_store():
     global FILE_SEARCH_STORE
     if client is None:
         raise RuntimeError('GOOGLE_API_KEY not configured')
-    if FILE_SEARCH_STORE is None:
-        FILE_SEARCH_STORE = client.file_search_stores.create()
+    # If we already have a store object, reuse it
+    if FILE_SEARCH_STORE is not None:
+        return FILE_SEARCH_STORE
+
+    # Try to read persisted store name from disk to avoid creating new stores repeatedly
+    try:
+        if os.path.exists(_STORE_INFO_PATH):
+            with open(_STORE_INFO_PATH, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+                name = data.get('name')
+                if name:
+                    # We only need the store.name for uploads and tools; a lightweight object suffices
+                    class _S:  # minimal holder
+                        def __init__(self, name):
+                            self.name = name
+                    FILE_SEARCH_STORE = _S(name)
+                    logger.info(f'Reusing persisted file search store: {name}')
+                    return FILE_SEARCH_STORE
+    except Exception as e:  # pragma: no cover
+        logger.warning(f'Failed to read persisted store info: {e}')
+
+    # Otherwise create a new store and persist its name
+    store = client.file_search_stores.create()
+    try:
+        with open(_STORE_INFO_PATH, 'w', encoding='utf-8') as fh:
+            json.dump({'name': store.name, 'created_at': int(time.time())}, fh)
+    except Exception as e:  # pragma: no cover
+        logger.warning(f'Failed to persist store info: {e}')
+    FILE_SEARCH_STORE = store
+    logger.info(f'Created and persisted new file search store: {store.name}')
     return FILE_SEARCH_STORE
 
 def upload_file_to_store(path: str) -> bool:
     try:
+        # Avoid re-uploading identical files by hashing the content and caching upload results
         store = ensure_file_search_store()
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        cache_path = os.path.join(app.config['UPLOAD_FOLDER'], _UPLOAD_CACHE_NAME)
+
+        def _compute_hash(p: str) -> str:
+            h = hashlib.sha256()
+            with open(p, 'rb') as fh:
+                for chunk in iter(lambda: fh.read(8192), b''):
+                    h.update(chunk)
+            return h.hexdigest()
+
+        file_hash = _compute_hash(path)
+        # load cache
+        cache = {}
+        try:
+            if os.path.exists(cache_path):
+                with open(cache_path, 'r', encoding='utf-8') as ch:
+                    cache = json.load(ch)
+        except Exception:
+            cache = {}
+
+        if file_hash in cache and cache[file_hash].get('uploaded') and cache[file_hash].get('store_name') == store.name:
+            logger.info(f"Skipping upload for {path}; already uploaded to store {store.name}")
+            return True
+
         op = client.file_search_stores.upload_to_file_search_store(
             file_search_store_name=store.name,
             file=path
@@ -158,6 +216,13 @@ def upload_file_to_store(path: str) -> bool:
         while not getattr(op, 'done', True):
             time.sleep(1)
             op = client.operations.get(op.name)
+        # persist cache entry
+        try:
+            cache[file_hash] = {'filename': os.path.basename(path), 'uploaded': True, 'timestamp': int(time.time()), 'store_name': store.name}
+            with open(cache_path, 'w', encoding='utf-8') as ch:
+                json.dump(cache, ch)
+        except Exception:
+            logger.warning('Failed to write upload cache')
         return True
     except Exception as e:  # pragma: no cover
         logger.warning(f'Upload to store failed for {path}: {e}')
@@ -179,6 +244,78 @@ def load_reference_images(category: str, max_images: int = 2) -> List[Dict[str, 
         except Exception as e:  # pragma: no cover
             logger.warning(f'Failed to read reference image {p}: {e}')
     return images
+
+
+# ---------------------------------------------------------------------------
+# Infographic helpers: ask Gemini whether an infographic is useful and, if so,
+# request a compact SVG infographic (returned as raw SVG text). These are
+# conservative: only produce an infographic when the model indicates it's
+# helpful. Failures fall back to no infographic.
+# ---------------------------------------------------------------------------
+def _parse_json_from_text(raw: str) -> Optional[Dict[str, Any]]:
+    if not raw:
+        return None
+    m = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', raw, re.DOTALL)
+    txt = m.group(1) if m else raw.strip()
+    try:
+        return json.loads(txt)
+    except Exception:
+        return None
+
+
+def decide_make_infographic(content: str) -> Dict[str, Any]:
+    """Return dict with keys: make (bool), reason (str), style (str).
+    Uses Gemini to make a conservative decision. If client is unavailable,
+    returns {'make': False}.
+    """
+    if client is None:
+        return {'make': False, 'reason': 'AI unavailable', 'style': 'simple'}
+    prompt = (
+        "You are a concise assistant that decides whether a small infographic (SVG)")
+    prompt += (
+        " would help make this information easier to understand for a smallholder farmer."
+        " Return ONLY JSON: {\n  \"make_infographic\": true|false,\n  \"reason\": \"short rationale\",\n  \"style\": \"simple|chart|timeline\"\n}\n"
+    )
+    prompt += "Content:\n" + content
+    try:
+        resp = client.models.generate_content(model='gemini-3-pro-preview', contents=prompt)
+        parsed = _parse_json_from_text(resp.text or '')
+        if parsed:
+            return {'make': bool(parsed.get('make_infographic')), 'reason': parsed.get('reason', ''), 'style': parsed.get('style', 'simple')}
+    except Exception as e:  # pragma: no cover
+        logger.warning(f'decide_make_infographic failed: {e}')
+    return {'make': False, 'reason': 'default', 'style': 'simple'}
+
+
+def generate_svg_infographic(content: str, style: str = 'simple') -> Optional[str]:
+    """Ask Gemini to produce a compact standalone SVG summarizing the content.
+    Returns the raw SVG string or None on failure.
+    """
+    if client is None:
+        return None
+    prompt = (
+        f"Produce a single standalone SVG (no HTML) under 800px width that visually "
+        f"summarizes the following content for a sugarcane farmer. Use simple shapes, "
+        f"large readable labels, and an uncluttered layout. Output ONLY the raw SVG.\n"
+        f"Style hint: {style}\nContent:\n" + content
+    )
+    try:
+        resp = client.models.generate_content(model='gemini-3-pro-preview', contents=prompt)
+        raw = resp.text or ''
+        # Attempt to extract fenced svg first
+        m = re.search(r'```(?:svg)?\s*(<svg[\s\S]*?</svg>)\s*```', raw, re.DOTALL | re.IGNORECASE)
+        if m:
+            return m.group(1)
+        # Try to find bare <svg>...</svg>
+        m2 = re.search(r'(<svg[\s\S]*?</svg>)', raw, re.DOTALL | re.IGNORECASE)
+        if m2:
+            return m2.group(1)
+        # As a last resort, return the full text if it looks like SVG
+        if raw.strip().startswith('<svg'):
+            return raw.strip()
+    except Exception as e:  # pragma: no cover
+        logger.warning(f'generate_svg_infographic failed: {e}')
+    return None
 
 # ----------------------------------------------------------------------------
 # Routes
@@ -251,7 +388,19 @@ def ask():
         )
         if not resp.candidates:
             return jsonify({'error': 'No response generated'}), 500
-        return jsonify({'response': resp.text or 'No answer'}), 200
+        raw = resp.text or 'No answer'
+        result = {'response': raw}
+        # Ask Gemini whether an infographic would help, and if so request an SVG
+        try:
+            decision = decide_make_infographic(raw)
+            if decision.get('make'):
+                svg = generate_svg_infographic(raw, decision.get('style', 'simple'))
+                if svg:
+                    result['infographic_svg'] = svg
+                    result['infographic_reason'] = decision.get('reason')
+        except Exception:
+            pass
+        return jsonify(result), 200
     except Exception as e:  # pragma: no cover
         logger.error(f'/ask error: {e}')
         return jsonify({'error': 'Failed to process question'}), 500
@@ -345,7 +494,17 @@ def scan_image():
                 raw_text = retry.text
         except Exception as re_err:  # pragma: no cover
             logger.warning(f'Retry failed: {re_err}')
-    return jsonify({**data, 'prompt_used': user_prompt, 'raw_text': raw_text}), 200
+    out = {**data, 'prompt_used': user_prompt, 'raw_text': raw_text}
+    try:
+        decision = decide_make_infographic(json.dumps(out, ensure_ascii=False))
+        if decision.get('make'):
+            svg = generate_svg_infographic(json.dumps(out, ensure_ascii=False), decision.get('style', 'simple'))
+            if svg:
+                out['infographic_svg'] = svg
+                out['infographic_reason'] = decision.get('reason')
+    except Exception:
+        pass
+    return jsonify(out), 200
 
 @app.route('/classify-plant', methods=['POST'])
 def classify_plant():
@@ -399,7 +558,17 @@ def classify_plant():
             'characteristics': 'Parsing failed',
             'recommendation': 'Retry with clearer image'
         }
-    return jsonify({'success': True, **data, 'raw_response': raw}), 200
+    out = {'success': True, **data, 'raw_response': raw}
+    try:
+        decision = decide_make_infographic(json.dumps(out, ensure_ascii=False))
+        if decision.get('make'):
+            svg = generate_svg_infographic(json.dumps(out, ensure_ascii=False), decision.get('style', 'simple'))
+            if svg:
+                out['infographic_svg'] = svg
+                out['infographic_reason'] = decision.get('reason')
+    except Exception:
+        pass
+    return jsonify(out), 200
 
 @app.route('/webhook', methods=['POST'])
 def webhook():

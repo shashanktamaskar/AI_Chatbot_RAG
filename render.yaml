@@ -6,7 +6,8 @@ services:
     plan: free
     branch: main
     buildCommand: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
-    startCommand: python -m flask run --host=0.0.0.0 --port $PORT --no-reload
+  # Use gunicorn for production server (same command as Procfile).
+  startCommand: python -m gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

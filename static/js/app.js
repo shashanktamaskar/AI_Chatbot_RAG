@@ -41,12 +41,55 @@ function addMessage(message, sender, imageData = null) {
   }
 }
 
+<<<<<<< HEAD
 function formatTime(d = new Date()) {
   try {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   } catch {
     return "";
   }
+=======
+// Utility: Add a bot message with raw HTML (used for infographics / rich blocks)
+function addBotHtml(html) {
+    const chatbox = document.getElementById('chatbox');
+    if (!chatbox) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg bot';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = html + `<span class="msg-time">${formatTime()}</span>`;
+
+    msgDiv.appendChild(bubble);
+    chatbox.appendChild(msgDiv);
+    try { chatbox.parentElement.scrollTop = chatbox.parentElement.scrollHeight; } catch (e) {}
+}
+
+// Render an infographic block (SVG + caption + download button)
+function renderInfographicBlock(svgText, reason) {
+    const safeSvg = svgText || '';
+    const href = 'data:image/svg+xml;utf8,' + encodeURIComponent(safeSvg);
+    const filename = 'infographic.svg';
+    const caption = reason ? `<div class="infographic-reason">${escapeHtml(reason)}</div>` : '';
+    return `
+        <div class="infographic">
+            <div class="infographic-inner">${safeSvg}</div>
+            ${caption}
+            <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                <a class="infographic-download" href="${href}" download="${filename}">Download SVG</a>
+                <button class="infographic-open" onclick="(function(el){
+                    const w = window.open(); w.document.write(el.innerHTML);
+                })(document.currentScript ? document.currentScript.parentElement : document.querySelector('.infographic-inner'))">Open in new tab</button>
+            </div>
+        </div>
+    `;
+}
+
+function formatTime(d=new Date()) {
+    try {
+        return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    } catch { return ''; }
+>>>>>>> 8cfb991 (WIP: add upload cache, persist file-search store, and infographic SVG support (backend + frontend))
 }
 
 // Utility: Escape HTML
@@ -850,6 +893,7 @@ async function handleSendMessage() {
             if (classification === "SUGARCANE") emoji = "✅🌾";
             else if (classification === "WEED") emoji = "⚠️🌿";
 
+<<<<<<< HEAD
             let txt = `${emoji} **CLASSIFICATION RESULT**\n`;
             txt += `${"=".repeat(60)}\n`;
             txt += `**Type:** ${classification || "UNKNOWN"}\n`;
@@ -866,6 +910,169 @@ async function handleSendMessage() {
           } catch (e) {
             return "";
           }
+=======
+                // Fire both requests in parallel
+                const classifyPromise = fetch('/classify-plant', { method: 'POST', body: fdClassify })
+                    .then(async r => ({ ok: r.ok, json: await safeJson(r) } ))
+                    .catch(e => ({ ok: false, json: { error: e.message } }));
+
+                const scanPromise = fetch('/scan-image', { method: 'POST', body: fdScan })
+                    .then(async r => ({ ok: r.ok, json: await safeJson(r) } ))
+                    .catch(e => ({ ok: false, json: { error: e.message } }));
+
+                const [classRes, scanRes] = await Promise.all([classifyPromise, scanPromise]);
+
+                // Helper to format classification block
+                function formatClassification(cdata) {
+                    try {
+                        const classification = (cdata.classification || '').toUpperCase();
+                        const confidence = (Number(cdata.confidence || 0) * 100).toFixed(1);
+                        let emoji = '❓';
+                        if (classification === 'SUGARCANE') emoji = '✅🌾';
+                        else if (classification === 'WEED') emoji = '⚠️🌿';
+
+                        let txt = `${emoji} **CLASSIFICATION RESULT**\n`;
+                        txt += `${'='.repeat(60)}\n`;
+                        txt += `**Type:** ${classification || 'UNKNOWN'}\n`;
+                        txt += `**Confidence:** ${confidence}%\n`;
+                        if (cdata.plant_type && cdata.plant_type !== 'Unknown') txt += `**Plant Type:** ${cdata.plant_type}\n`;
+                        if (cdata.details) txt += `\n**Details:**\n${cdata.details}\n`;
+                        if (cdata.characteristics) txt += `\n**Characteristics:**\n${cdata.characteristics}\n`;
+                        if (cdata.recommendation) txt += `\n**💡 Recommendation:**\n${cdata.recommendation}`;
+                        txt += `\n${'='.repeat(60)}\n\n`;
+                        return txt;
+                    } catch (e) { return '' }
+                }
+
+                // Helper to format scan block
+                function formatScan(sdata) {
+                    try {
+                        let txt = `**Image Analysis**\n\n`;
+                        if (sdata.summary) txt += `📋 **Summary:** ${sdata.summary}\n\n`;
+                        if (sdata.severity) txt += `⚠️ **Severity:** ${sdata.severity}\n\n`;
+                        if (sdata.diagnosis && sdata.diagnosis.length > 0) txt += `🔍 **Diagnosis:**\n${sdata.diagnosis.map(d => `- ${d}`).join('\n')}\n\n`;
+                        if (sdata.recommendations && sdata.recommendations.length > 0) txt += `💊 **Recommendations:**\n${sdata.recommendations.map(r => `- ${r}`).join('\n')}\n\n`;
+                        if (sdata.preventive_measures && sdata.preventive_measures.length > 0) txt += `🛡️ **Preventive Measures:**\n${sdata.preventive_measures.map(p => `- ${p}`).join('\n')}\n\n`;
+                        return txt;
+                    } catch (e) { return '' }
+                }
+
+                // safeJson: parse response or return null
+                function safeJsonResponseWrapper(obj) {
+                    return (obj && obj.json) ? obj.json : null;
+                }
+
+                const classifyData = safeJsonResponseWrapper(classRes) || {};
+                const scanData = safeJsonResponseWrapper(scanRes) || {};
+
+                let finalMsg = '';
+
+                if (classifyData && classifyData.classification) {
+                    finalMsg += formatClassification(classifyData);
+                }
+
+                if (scanData) {
+                    finalMsg += formatScan(scanData);
+                }
+
+                // Decide if scan result is barren (no useful info)
+                function isScanBarren(sd) {
+                    if (!sd) return true;
+                    const diag = sd.diagnosis || [];
+                    const recs = sd.recommendations || [];
+                    const prev = sd.preventive_measures || [];
+                    const onlyNone = (diag.length === 1 && /^none/i.test(String(diag[0] || '')));
+                    const empty = (!recs.length && !prev.length && (!sd.summary || sd.summary.trim() === ''));
+                    return onlyNone || empty;
+                }
+
+                const classLowConfidence = (classifyData && typeof classifyData.confidence !== 'undefined' && Number(classifyData.confidence) < 0.4) || false;
+                const scanBarren = isScanBarren(scanData);
+
+                // If barren or low confidence, retry scan once with an explicit guidance prompt
+                if (scanBarren || classLowConfidence) {
+                    // retrying scan due to barren/low-confidence results
+                    const retryFd = new FormData();
+                    retryFd.append('file', attachedImageFile);
+                    retryFd.append('language', lang);
+                    // guidance to elicit more thorough analysis without inventing
+                    retryFd.append('prompt', 'Re-analyze the image carefully for subtle early-stage disease or pest signs. If healthy, provide at least one preventive measure and confidence level. Do NOT invent conditions.');
+                    try {
+                        const retryResp = await fetch('/scan-image', { method: 'POST', body: retryFd });
+                        const retryJson = await safeJson(retryResp);
+                        if (retryResp.ok && retryJson) {
+                            // update finalMsg with retry details (append)
+                            finalMsg += '\n**Retry Analysis**\n\n' + formatScan(retryJson);
+                            // incorporate any new recommendations
+                            if (retryJson.recommendations && retryJson.recommendations.length > 0) {
+                                finalMsg += '✅ Added recommendations from retry.\n';
+                            }
+                        }
+                    } catch (e) {
+                        // retry scan failed
+                    }
+                }
+
+                if (!finalMsg) finalMsg = '⚠️ No useful analysis returned. Try a clearer close-up photo, good lighting, or add a short prompt (e.g., "Is this red rot?").';
+
+                addMessage(finalMsg, 'bot');
+                lastBotMessage = finalMsg;
+                // If any infographic SVGs were returned from scan/classify endpoints, render them
+                try {
+                    if (scanData && scanData.infographic_svg) {
+                        addBotHtml(renderInfographicBlock(scanData.infographic_svg, scanData.infographic_reason || ''));
+                    }
+                } catch (e) {}
+                try {
+                    if (classifyData && classifyData.infographic_svg) {
+                        addBotHtml(renderInfographicBlock(classifyData.infographic_svg, classifyData.infographic_reason || ''));
+                    }
+                } catch (e) {}
+
+            } catch (err) {
+                // image analysis error
+                addMessage('❌ Image analysis failed: ' + (err.message || err), 'error');
+                    } finally {
+                        // Clear attached image (guard DOM accesses)
+                        attachedImageFile = null;
+                        const _cInput = document.getElementById('chatImageInput');
+                        if (_cInput) _cInput.value = '';
+                        const _imgBar = document.getElementById('imagePreviewBar');
+                        if (_imgBar) _imgBar.style.display = 'none';
+                        const _qEl = document.getElementById('question');
+                        if (_qEl) _qEl.placeholder = 'Ask your question...';
+                    }
+
+        } else {
+            // Regular text question
+            // sending question to /ask endpoint
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    question: question,
+                    language: lang
+                })
+            });
+
+            const data = await res.json();
+            // response from /ask endpoint
+
+            if (!res.ok) {
+                addMessage(data.error || 'Failed to get response', 'error');
+            } else {
+                addMessage(data.response, 'bot');
+                lastBotMessage = data.response;
+                // Render optional infographic if provided
+                if (data && data.infographic_svg) {
+                    try {
+                        addBotHtml(renderInfographicBlock(data.infographic_svg, data.infographic_reason || ''));
+                    } catch (e) { /* ignore */ }
+                }
+            }
+>>>>>>> 8cfb991 (WIP: add upload cache, persist file-search store, and infographic SVG support (backend + frontend))
         }
 
         // Helper to format scan block
