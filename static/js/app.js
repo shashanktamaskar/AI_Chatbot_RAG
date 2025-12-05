@@ -117,6 +117,84 @@ async function requestTextVersion(question, btn) {
   }
 }
 
+// Generate infographic asynchronously and add to last message
+async function generateInfographicAsync(question, content, lang) {
+  // Find the last bot message bubble to update
+  const chatbox = document.getElementById("chatbox");
+  if (!chatbox) return;
+
+  const botMessages = chatbox.querySelectorAll('.msg.bot');
+  if (botMessages.length === 0) return;
+
+  const lastBotMsg = botMessages[botMessages.length - 1];
+  const bubble = lastBotMsg.querySelector('.msg-bubble');
+  if (!bubble) return;
+
+  // Add loading indicator for infographic
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'infographic-loading';
+  loadingDiv.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(0,128,0,0.1); border-radius: 8px; margin-top: 12px;">
+      <div class="spinner" style="width: 16px; height: 16px;"></div>
+      <span>🎨 ${t('generatingInfographic') || 'Generating infographic...'}</span>
+    </div>
+  `;
+  bubble.appendChild(loadingDiv);
+
+  try {
+    const response = await fetch('/generate-infographic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: question,
+        content: content,
+        language: lang
+      })
+    });
+
+    const data = await response.json();
+
+    // Remove loading indicator
+    loadingDiv.remove();
+
+    if (response.ok && data.infographic_url) {
+      // Add infographic to the message
+      const infographicHtml = `
+        <div class="infographic-container" style="margin-top: 12px;">
+          <img src="${data.infographic_url}" class="infographic-image" alt="Infographic" onclick="window.open('${data.infographic_url}', '_blank')">
+          <div class="infographic-actions">
+            <button class="text-fallback-btn" onclick="requestTextVersion('${escapeHtml(question)}', this)" title="Show text version instead">
+              📝 ${t('showTextVersion') || 'Show Text Version'}
+            </button>
+            <span class="infographic-lang">${data.infographic_language ? '🌐 ' + data.infographic_language : ''}</span>
+          </div>
+        </div>
+      `;
+      bubble.insertAdjacentHTML('beforeend', infographicHtml);
+
+      // Scroll to show the infographic
+      if (chatbox.parentElement) {
+        chatbox.parentElement.scrollTop = chatbox.parentElement.scrollHeight;
+      }
+
+      console.log('Infographic added successfully:', data.infographic_url);
+    } else {
+      // Show error but don't disrupt the text response
+      console.error('Infographic generation failed:', data.error);
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'infographic-error';
+      errorDiv.innerHTML = `
+        <div style="padding: 8px; background: rgba(255,0,0,0.1); border-radius: 8px; margin-top: 12px; font-size: 12px; color: #666;">
+          ⚠️ ${t('infographicFailed') || 'Infographic generation failed. Text response shown above.'}
+        </div>
+      `;
+      bubble.appendChild(errorDiv);
+    }
+  } catch (error) {
+    console.error('Infographic request failed:', error);
+    loadingDiv.remove();
+  }
+}
 
 function formatTime(d = new Date()) {
   try {
@@ -220,6 +298,8 @@ const translations = {
     collapseText: "Hide Text",
     loading: "Loading...",
     failed: "Failed",
+    generatingInfographic: "Generating infographic...",
+    infographicFailed: "Infographic generation failed. Text response shown above.",
   },
   hinglish: {
     listening: "Sun raha hai...",
@@ -1092,20 +1172,30 @@ async function handleSendMessage() {
       if (!res.ok) {
         addMessage(data.error || "Failed to get response", "error");
       } else {
-        // Check if response includes an infographic
-        const messageOptions = {};
+        // Show text response immediately
+        const messageOptions = {
+          originalQuestion: question
+        };
+
+        // If infographic is already included (shouldn't happen with new flow, but just in case)
         if (data.infographic_url) {
           messageOptions.infographicUrl = data.infographic_url;
-          messageOptions.originalQuestion = question;
           messageOptions.infographicLanguage = data.infographic_language || lang;
         }
 
+        // Add the message with text
         addMessage(data.response, "bot", null, messageOptions);
         lastBotMessage = data.response;
 
         // Log classification info for debugging
         if (data.response_format) {
           console.log(`Response format: ${data.response_format}, confidence: ${data.classification_confidence}`);
+        }
+
+        // If infographic is pending, generate it asynchronously
+        if (data.infographic_pending) {
+          console.log("Infographic pending, generating in background...");
+          generateInfographicAsync(question, data.response, lang);
         }
       }
     }

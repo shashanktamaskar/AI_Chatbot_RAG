@@ -206,7 +206,7 @@ def ask():
         raw_text = resp.text or 'No answer'
         logger.info(f"✅ [STEP 2] Text response generated (length: {len(raw_text)} chars)")
         
-        # ========== STEP 3: Generate infographic if visual format ==========
+        # ========== STEP 3: Return text immediately, indicate if infographic pending ==========
         result = {
             'response': raw_text,
             'response_format': response_format,
@@ -214,30 +214,10 @@ def ask():
             'classification_reason': classification.get('reason', '')
         }
         
-        # Only generate infographic if classified as visual with good confidence
+        # If visual format, tell frontend to request infographic separately
         if response_format == 'visual' and confidence >= 0.6:
-            logger.info(f"🎨 [STEP 3] Generating infographic in {lang}...")
-            
-            try:
-                image_path = ai_services.generate_infographic_image(
-                    content=raw_text,
-                    topic=question,
-                    language=lang
-                )
-                
-                if image_path:
-                    result['infographic_url'] = f'/uploads/{image_path}'
-                    result['infographic_language'] = lang
-                    logger.info(f"✅ [STEP 3] Infographic generated: {image_path}")
-                else:
-                    logger.warning("⚠️ [STEP 3] Infographic generation returned None")
-                    result['infographic_error'] = 'Generation failed, text response provided'
-                    
-            except Exception as e:
-                logger.error(f"❌ [STEP 3] Infographic generation failed: {e}")
-                result['infographic_error'] = str(e)
-        else:
-            logger.info(f"📝 [STEP 3] Skipping infographic (format={response_format}, confidence={confidence:.2f})")
+            result['infographic_pending'] = True
+            logger.info(f"📝 [STEP 3] Returning text immediately, infographic will be generated separately")
         
         logger.info(f"✅ Returning response (format: {response_format})")
         return jsonify(result), 200
@@ -247,6 +227,50 @@ def ask():
         import traceback
         logger.error(traceback.format_exc())
         return jsonify({'error': 'Failed to process question'}), 500
+
+
+@app.route('/generate-infographic', methods=['POST'])
+def generate_infographic():
+    """
+    Generate an infographic for a given question and content.
+    Called asynchronously by the frontend after text response is displayed.
+    """
+    if not request.json:
+        return jsonify({'error': 'JSON body required'}), 400
+    
+    question = (request.json.get('question', '') or '').strip()
+    content = (request.json.get('content', '') or '').strip()
+    lang = request.json.get('language', 'english').lower()
+    
+    if not question:
+        return jsonify({'error': 'Question cannot be empty'}), 400
+
+    logger.info(f"🎨 Generating infographic for: '{question[:50]}...' in {lang}")
+    
+    try:
+        image_path = ai_services.generate_infographic_image(
+            content=content,
+            topic=question,
+            language=lang
+        )
+        
+        if image_path:
+            logger.info(f"✅ Infographic generated: {image_path}")
+            return jsonify({
+                'infographic_url': f'/uploads/{image_path}',
+                'infographic_language': lang,
+                'success': True
+            }), 200
+        else:
+            logger.warning("⚠️ Infographic generation returned None")
+            return jsonify({
+                'error': 'Infographic generation failed',
+                'success': False
+            }), 500
+            
+    except Exception as e:
+        logger.error(f'/generate-infographic error: {e}')
+        return jsonify({'error': str(e), 'success': False}), 500
 
 
 @app.route('/get-text-version', methods=['POST'])
