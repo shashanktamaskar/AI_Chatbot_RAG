@@ -538,6 +538,19 @@ def internal_error(e):  # pragma: no cover
     logger.error(f'Internal server error: {e}')
     return jsonify({'error': 'Internal server error'}), 500
 
+
+# Generic handler to ensure JSON is always returned on unexpected exceptions
+@app.errorhandler(Exception)
+def handle_uncaught_exception(e):  # pragma: no cover
+    # Log full traceback for debugging (server-side only)
+    logger.exception('Uncaught exception during request')
+    try:
+        msg = str(e)
+    except Exception:
+        msg = 'Internal error'
+    # Return a safe JSON error without leaking internal details
+    return jsonify({'error': 'internal_server_error', 'message': 'An internal error occurred'}), 500
+
 if __name__ == '__main__':  # pragma: no cover
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     port = int(os.environ.get('PORT', 5000))

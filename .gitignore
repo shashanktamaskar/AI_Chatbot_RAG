@@ -56,7 +56,6 @@ infographic_generator/
 archive/
 
 # File search store cache
-.file_search_store.json
 
 # OS generated files
 .DS_Store
