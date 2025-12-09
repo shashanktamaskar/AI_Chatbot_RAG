@@ -718,7 +718,7 @@ def generate_infographic_image(content: str, topic: str, language: str = 'englis
         logger.info(f"📸 Calling Gemini 3 Pro Image to generate infographic for: {topic}")
         logger.info(f"   ✓ Model: gemini-3-pro-image-preview")
         logger.info(f"   ✓ Language: {lang_name}")
-        logger.info(f"   ✓ Resolution: 4K")
+        logger.info(f"   ✓ Resolution: 1080p (HD)")
         logger.info(f"   ✓ Aspect Ratio: 16:9")
         logger.info(f"   ✓ Tools: Google Search grounding")
         
@@ -729,10 +729,10 @@ def generate_infographic_image(content: str, topic: str, language: str = 'englis
             config=types.GenerateContentConfig(
                 # Use Google Search for real-time agricultural data
                 tools=[{"google_search": {}}],
-                # Configure image output quality and size
+                # Configure image output quality and size (1080p for mobile-friendly output)
                 image_config=types.ImageConfig(
                     aspect_ratio="16:9",
-                    image_size="4K"  # High resolution for clarity
+                    image_size="1080p"  # HD resolution - optimized for mobile devices
                 )
             )
         )
