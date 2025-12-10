@@ -37,7 +37,7 @@
 
 
 // Utility: Add message to chat
-// Enhanced to support infographic display with text fallback option
+// Enhanced to support infographic display with user-controlled generation
 function addMessage(message, sender, imageData = null, options = {}) {
   const chatbox = document.getElementById("chatbox");
   if (!chatbox) return; // nothing to render into
@@ -57,14 +57,11 @@ function addMessage(message, sender, imageData = null, options = {}) {
   } else if (sender === "bot") {
     // Check if we have an infographic to display
     if (options.infographicUrl) {
-      // Create infographic container
+      // Create infographic container (when infographic is already generated)
       const infographicHtml = `
         <div class="infographic-container">
           <img src="${options.infographicUrl}" class="infographic-image" alt="Infographic" onclick="window.open('${options.infographicUrl}', '_blank')">
           <div class="infographic-actions">
-            <button class="text-fallback-btn" onclick="requestTextVersion('${escapeHtml(options.originalQuestion || '')}', this)" title="Show text version instead">
-              📝 ${t('showTextVersion') || 'Show Text Version'}
-            </button>
             <span class="infographic-lang">${options.infographicLanguage ? '🌐 ' + options.infographicLanguage : ''}</span>
           </div>
         </div>
@@ -75,8 +72,16 @@ function addMessage(message, sender, imageData = null, options = {}) {
       `;
       bubble.innerHTML = `${infographicHtml} <span class="msg-time">${formatTime()}</span>`;
     } else {
-      // Regular text response
-      bubble.innerHTML = `${marked.parse(message)} <span class="msg-time">${formatTime()}</span>`;
+      // Text response with "Generate Infographic" button
+      const originalQuestion = escapeHtml(options.originalQuestion || '');
+      const generateBtnHtml = options.canGenerateInfographic !== false ? `
+        <div class="infographic-generate-action" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1);">
+          <button class="generate-infographic-btn" onclick="generateInfographicOnDemand('${originalQuestion}', this)" title="${t('generateInfographic') || 'Generate visual infographic'}">
+            🎨 ${t('generateInfographic') || 'Generate Infographic'}
+          </button>
+        </div>
+      ` : '';
+      bubble.innerHTML = `${marked.parse(message)}${generateBtnHtml} <span class="msg-time">${formatTime()}</span>`;
     }
   } else if (sender === "error") {
     bubble.innerHTML = `${escapeHtml(message)} <span class="msg-time">${formatTime()}</span>`;
@@ -149,6 +154,77 @@ async function requestTextVersion(question, btn) {
       btn.textContent = '📝 ' + (t('showTextVersion') || 'Show Text Version');
       btn.disabled = false;
     }, 2000);
+  }
+}
+
+// Generate infographic on demand when user clicks the button
+async function generateInfographicOnDemand(question, btn) {
+  if (!question) {
+    console.error('No question provided for infographic generation');
+    return;
+  }
+
+  const bubble = btn.closest('.msg-bubble');
+  if (!bubble) return;
+
+  // Get the text content from the bubble for the infographic
+  const textContent = bubble.querySelector('p, .text-content');
+  const content = textContent ? textContent.textContent : '';
+
+  // Update button to show loading state
+  btn.disabled = true;
+  const originalBtnText = btn.innerHTML;
+  btn.innerHTML = `<span class="spinner" style="width: 14px; height: 14px; display: inline-block; margin-right: 6px;"></span> ${t('generatingInfographic') || 'Generating...'}`;
+
+  try {
+    const response = await fetch('/generate-infographic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: question,
+        content: content,
+        language: getLanguage(),
+        force: true  // Force generation since user explicitly requested
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.infographic_url) {
+      // Replace the button container with the infographic
+      const actionContainer = btn.closest('.infographic-generate-action');
+      if (actionContainer) {
+        const infographicHtml = `
+          <div class="infographic-container" style="margin-top: 12px;">
+            <img src="${data.infographic_url}" class="infographic-image" alt="Infographic" 
+                 onclick="window.open('${data.infographic_url}', '_blank')" 
+                 style="max-width: 100%; border-radius: 8px; cursor: pointer;">
+            <div class="infographic-actions" style="margin-top: 8px; font-size: 12px; color: #666;">
+              <span>🎨 ${t('infographicGenerated') || 'Infographic generated'}</span>
+              ${data.infographic_language ? ' • 🌐 ' + data.infographic_language : ''}
+            </div>
+          </div>
+        `;
+        actionContainer.outerHTML = infographicHtml;
+      }
+
+      console.log('Infographic generated successfully:', data.infographic_url);
+    } else {
+      // Show error but keep the button
+      btn.innerHTML = '❌ ' + (t('infographicFailed') || 'Generation failed');
+      btn.disabled = false;
+      setTimeout(() => {
+        btn.innerHTML = originalBtnText;
+      }, 3000);
+      console.error('Infographic generation failed:', data.error || 'Unknown error');
+    }
+  } catch (error) {
+    console.error('Infographic request failed:', error);
+    btn.innerHTML = '❌ ' + (t('networkError') || 'Network error');
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.innerHTML = originalBtnText;
+    }, 3000);
   }
 }
 
@@ -333,8 +409,10 @@ const translations = {
     collapseText: "Hide Text",
     loading: "Loading...",
     failed: "Failed",
-    generatingInfographic: "Generating infographic...",
-    infographicFailed: "Infographic generation failed. Text response shown above.",
+    generatingInfographic: "Generating...",
+    generateInfographic: "Generate Infographic",
+    infographicGenerated: "Infographic generated",
+    infographicFailed: "Generation failed",
   },
   hinglish: {
     listening: "Sun raha hai...",
@@ -1208,9 +1286,10 @@ async function handleSendMessage() {
       if (!res.ok) {
         addMessage(data.error || "Failed to get response", "error");
       } else {
-        // Show text response immediately
+        // Show text response with "Generate Infographic" button
         const messageOptions = {
-          originalQuestion: question
+          originalQuestion: question,
+          canGenerateInfographic: data.can_generate_infographic !== false
         };
 
         // If infographic is already included (shouldn't happen with new flow, but just in case)
@@ -1219,20 +1298,12 @@ async function handleSendMessage() {
           messageOptions.infographicLanguage = data.infographic_language || lang;
         }
 
-        // Add the message with text
+        // Add the message with text and Generate Infographic button
         addMessage(data.response, "bot", null, messageOptions);
         lastBotMessage = data.response;
 
-        // Log classification info for debugging
-        if (data.response_format) {
-          console.log(`Response format: ${data.response_format}, confidence: ${data.classification_confidence}`);
-        }
-
-        // If infographic is pending, generate it asynchronously
-        if (data.infographic_pending) {
-          console.log("Infographic pending, generating in background...");
-          generateInfographicAsync(question, data.response, lang);
-        }
+        // Log info for debugging
+        console.log("Text response displayed. User can click 'Generate Infographic' button if needed.");
       }
     }
   } catch (error) {

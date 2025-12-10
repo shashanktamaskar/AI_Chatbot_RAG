@@ -243,32 +243,17 @@ def ask():
         raw_text = resp.text or 'No answer'
         logger.info(f"✅ [STEP 2] Text response generated (length: {len(raw_text)} chars)")
         
-        # ========== STEP 3: Return text immediately, indicate if infographic pending ==========
+        # ========== STEP 3: Always return text, allow user to request infographic ==========
+        # Users can click a button to generate infographic on demand
         result = {
             'response': raw_text,
-            'response_format': response_format,
-            'classification_confidence': confidence,
-            'classification_reason': classification.get('reason', '')
+            'response_format': 'text',  # Always text first
+            'can_generate_infographic': True,  # User can request infographic via button
+            'infographic_pending': False  # Never auto-generate
         }
         
-        # Generate infographic if:
-        # 1. User explicitly requested it using the word 'create', OR
-        # 2. Query is classified as 'visual' with confidence >= 0.7 (how-to, schedules, symptoms, etc.)
-        has_create = bool(re.search(r'\bcreate\b', question or '', re.IGNORECASE))
-        is_visual_query = response_format == 'visual' and confidence >= 0.7
-        
-        if has_create or is_visual_query:
-            result['infographic_pending'] = True
-            if has_create:
-                logger.info("📝 [STEP 3] User asked to 'create' — marking infographic as pending")
-            else:
-                logger.info(f"📝 [STEP 3] Query classified as VISUAL (confidence: {confidence:.2f}) — marking infographic as pending")
-        else:
-            # Text-only response for greetings, simple questions, etc.
-            result['infographic_pending'] = False
-            logger.info(f"📝 [STEP 3] Text-only response (format: {response_format}, confidence: {confidence:.2f})")
-        
-        logger.info(f"✅ Returning response (format: {response_format})")
+        logger.info(f"📝 [STEP 3] Text response ready. User can request infographic via button.")
+        logger.info(f"✅ Returning text response")
         return jsonify(result), 200
         
     except Exception as e:
